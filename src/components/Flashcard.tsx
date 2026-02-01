@@ -28,8 +28,12 @@ export function Flashcard({
   onToggle,
 }: FlashcardProps) {
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
+  const answerVisibleRef = useRef<boolean>(
+    reverseMode ? !isFlipped : isFlipped,
+  );
 
   const cleanupAudio = useCallback(() => {
     if (audioRef.current) {
@@ -54,45 +58,41 @@ export function Flashcard({
     ? "badge badge-outline font-semibold text-primary-content border-primary-content/60"
     : "badge badge-outline font-semibold";
 
-  const handlePlayClick = useCallback(
-    async (event: MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      cleanupAudio();
-      setIsLoadingAudio(true);
-      try {
-        const response = await fetch("/api/tts", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ text: element.nameEn }),
-        });
+  const playElementAudio = useCallback(async () => {
+    cleanupAudio();
+    setIsLoadingAudio(true);
+    try {
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: element.nameEn }),
+      });
 
-        if (!response.ok) {
-          const errorJson = (await response.json().catch(() => null)) as
-            | { error?: string }
-            | null;
-          throw new Error(errorJson?.error ?? "Failed to fetch audio.");
-        }
-
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        audioUrlRef.current = url;
-
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = cleanupAudio;
-        audio.onerror = cleanupAudio;
-        await audio.play();
-      } catch (error) {
-        console.error("Playback failed:", error);
-        cleanupAudio();
-      } finally {
-        setIsLoadingAudio(false);
+      if (!response.ok) {
+        const errorJson = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(errorJson?.error ?? "Failed to generate audio.");
       }
-    },
-    [cleanupAudio, element.nameEn],
-  );
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      audioUrlRef.current = url;
+
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = cleanupAudio;
+      audio.onerror = cleanupAudio;
+      await audio.play();
+    } catch (error) {
+      console.error("TTS playback failed:", error);
+      cleanupAudio();
+    } finally {
+      setIsLoadingAudio(false);
+    }
+  }, [cleanupAudio, element.nameEn]);
 
   const renderSymbolFace = (context: "front" | "back") => {
     const numberColor =
@@ -100,7 +100,7 @@ export function Flashcard({
     const symbolColor =
       context === "front" ? "text-base-content" : "text-primary-content";
     const massColor =
-      context === "front" ? "text-base-content/70" : "text-primary-content/75";
+      context === "front" ? "text-base-content/70" : "text-primary-content/80";
 
     return (
       <>
@@ -147,14 +147,32 @@ export function Flashcard({
             {element.nameZh}
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-sm btn-outline"
-          onClick={handlePlayClick}
-          disabled={isLoadingAudio}
-        >
-          {isLoadingAudio ? "…" : "🔊 Play"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!isMuted) {
+                playElementAudio();
+              }
+            }}
+            disabled={isLoadingAudio || isMuted}
+          >
+            {isMuted ? "Muted" : isLoadingAudio ? "…" : "🔊 Play"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsMuted((prev) => !prev);
+              cleanupAudio();
+            }}
+          >
+            {isMuted ? "Unmute" : "Mute"}
+          </button>
+        </div>
       </div>
     );
   };
@@ -188,6 +206,18 @@ export function Flashcard({
   useEffect(() => {
     cleanupAudio();
   }, [element.atomicNumber, cleanupAudio]);
+
+  useEffect(() => {
+    const answerVisible = reverseMode ? !isFlipped : isFlipped;
+    if (
+      answerVisible &&
+      !answerVisibleRef.current &&
+      !isMuted
+    ) {
+      playElementAudio();
+    }
+    answerVisibleRef.current = answerVisible;
+  }, [isFlipped, reverseMode, isMuted, playElementAudio]);
 
   return (
     <div className="mx-auto w-full max-w-lg">
