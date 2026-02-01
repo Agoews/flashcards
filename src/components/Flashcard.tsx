@@ -1,7 +1,14 @@
 "use client";
 
 import { ChemElement } from "@/src/data/elements";
-import { KeyboardEvent, MouseEvent } from "react";
+import {
+  KeyboardEvent,
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 type FlashcardProps = {
   element: ChemElement;
@@ -20,6 +27,22 @@ export function Flashcard({
   onNext,
   onToggle,
 }: FlashcardProps) {
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+
+  const cleanupAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+  }, []);
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -31,13 +54,53 @@ export function Flashcard({
     ? "badge badge-outline font-semibold text-primary-content border-primary-content/60"
     : "badge badge-outline font-semibold";
 
+  const handlePlayClick = useCallback(
+    async (event: MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      cleanupAudio();
+      setIsLoadingAudio(true);
+      try {
+        const response = await fetch("/api/tts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: element.nameEn }),
+        });
+
+        if (!response.ok) {
+          const errorJson = (await response.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          throw new Error(errorJson?.error ?? "Failed to fetch audio.");
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
+
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = cleanupAudio;
+        audio.onerror = cleanupAudio;
+        await audio.play();
+      } catch (error) {
+        console.error("Playback failed:", error);
+        cleanupAudio();
+      } finally {
+        setIsLoadingAudio(false);
+      }
+    },
+    [cleanupAudio, element.nameEn],
+  );
+
   const renderSymbolFace = (context: "front" | "back") => {
     const numberColor =
       context === "front" ? "text-base-content/70" : "text-primary-content/80";
     const symbolColor =
       context === "front" ? "text-base-content" : "text-primary-content";
     const massColor =
-      context === "front" ? "text-base-content/70" : "text-primary-content/80";
+      context === "front" ? "text-base-content/70" : "text-primary-content/75";
 
     return (
       <>
@@ -67,7 +130,7 @@ export function Flashcard({
       context === "front" ? "text-base-content" : "text-primary-content";
 
     return (
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-1">
           <p className={`text-xs uppercase tracking-[0.4em] ${labelColor}`}>
             English
@@ -84,6 +147,14 @@ export function Flashcard({
             {element.nameZh}
           </p>
         </div>
+        <button
+          type="button"
+          className="btn btn-sm btn-outline"
+          onClick={handlePlayClick}
+          disabled={isLoadingAudio}
+        >
+          {isLoadingAudio ? "…" : "🔊 Play"}
+        </button>
       </div>
     );
   };
@@ -100,9 +171,23 @@ export function Flashcard({
     direction: "prev" | "next",
   ) => {
     event.stopPropagation();
-    if (direction === "prev") onPrev();
-    else onNext();
+    cleanupAudio();
+    if (direction === "prev") {
+      onPrev();
+    } else {
+      onNext();
+    }
   };
+
+  useEffect(() => {
+    return () => {
+      cleanupAudio();
+    };
+  }, [cleanupAudio]);
+
+  useEffect(() => {
+    cleanupAudio();
+  }, [element.atomicNumber, cleanupAudio]);
 
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -118,7 +203,6 @@ export function Flashcard({
           <span className={badgeClasses}>{element.groupLabel}</span>
         </div>
 
-        {/* ✅ z-index raised so arrows sit above both faces and are clickable */}
         <button
           type="button"
           aria-label="Previous element"
@@ -127,8 +211,6 @@ export function Flashcard({
         >
           {"<"}
         </button>
-
-        {/* ✅ z-index raised so arrows sit above both faces and are clickable */}
         <button
           type="button"
           aria-label="Next element"
@@ -147,7 +229,6 @@ export function Flashcard({
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-[inherit] bg-base-100 px-8 py-10 text-center [backface-visibility:hidden]">
               {frontContent}
             </div>
-
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-[inherit] bg-primary px-8 py-10 text-center text-primary-content [backface-visibility:hidden] [transform:rotateY(180deg)]">
               {backContent}
             </div>
