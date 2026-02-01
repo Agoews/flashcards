@@ -190,16 +190,9 @@ export default function Home() {
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center gap-10 px-4 py-10 text-center md:px-6">
         <div className="space-y-2">
-          <p className="text-sm uppercase tracking-[0.5em] text-base-content/60">
-            Study mode
-          </p>
           <h1 className="text-4xl font-semibold text-base-content">
             Main-group Elements
           </h1>
-          <p className="text-base text-base-content/70">
-            Flip through the s- and p-block (groups 1A-8A), track progress, and
-            keep your favorite study settings saved locally.
-          </p>
         </div>
 
         {currentElement ? (

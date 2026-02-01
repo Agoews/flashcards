@@ -265,16 +265,6 @@ export function Flashcard({
           </div>
         </div>
       </div>
-
-      <div className="mt-4 flex justify-center">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="btn btn-outline btn-primary w-40"
-        >
-          Flip
-        </button>
-      </div>
     </div>
   );
 }
