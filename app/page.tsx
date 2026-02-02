@@ -1,6 +1,7 @@
 "use client";
 
 import { Flashcard } from "@/src/components/Flashcard";
+import { SiteHeader } from "@/src/components/SiteHeader";
 import { StudyControls } from "@/src/components/StudyControls";
 import { ChemElement, GroupFilter, elements } from "@/src/data/elements";
 import { useLocalStorageState } from "@/src/hooks/useLocalStorageState";
@@ -174,19 +175,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-base-200">
-      <header className="navbar sticky top-0 z-10 border-b border-base-300 bg-base-100/95 px-6 backdrop-blur">
-        <div className="navbar-start" />
-        <div className="navbar-center">
-          <span className="text-xl font-semibold tracking-wide">
-            Chem Flashcards
-          </span>
-        </div>
-        <div className="navbar-end">
-          <span className="badge badge-primary badge-outline">
-            Main-group 1A-8A
-          </span>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center gap-10 px-4 py-10 text-center md:px-6">
         <div className="space-y-2">
@@ -229,4 +218,3 @@ export default function Home() {
     </div>
   );
 }
-
