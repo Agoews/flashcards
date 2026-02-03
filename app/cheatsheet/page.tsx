@@ -25,7 +25,7 @@ const formatFormula = (formula: string) => {
 
 export default function CheatSheetPage() {
   const [compactSections, setCompactSections] = useState<SectionState>(() =>
-    buildSectionState(false),
+    buildSectionState(true),
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const compactCount = useMemo(
@@ -128,12 +128,6 @@ export default function CheatSheetPage() {
             <h1 className="mt-2 text-4xl font-semibold text-base-content">
               Cheat Sheet & Chapter Notes
             </h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-base-content/80">
-              Capture the distilled takeaways for each unit so you can review
-              trends side-by-side with the flashcards. Add new sections or notes
-              as you move through the course - the layout keeps everything tidy even
-              when the list grows.
-            </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <div className="flex gap-2">
                 <button
@@ -164,9 +158,19 @@ export default function CheatSheetPage() {
                 <section
                   key={section.id}
                   id={`section-${section.id}`}
-                  className={`scroll-mt-32 rounded-3xl border border-base-300 p-6 shadow-sm transition hover:border-primary/40 ${
+                  className={`scroll-mt-32 rounded-3xl border border-base-300 p-6 shadow-sm transition hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-base-200 ${
                     isCompact ? "bg-base-100/70" : "bg-base-100/90"
-                  }`}
+                  } cursor-pointer`}
+                  onClick={() => toggleCompact(section.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      toggleCompact(section.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={!isCompact}
                 >
                   <div className="flex flex-wrap items-start gap-4">
                     <div
@@ -199,21 +203,11 @@ export default function CheatSheetPage() {
                       )}
                     </div>
 
-                    <div className="flex w-full flex-col gap-2 md:w-auto">
-                      <button
-                        type="button"
-                        className={`btn btn-xs ${isCompact ? "btn-accent" : "btn-outline"}`}
-                        onClick={() => toggleCompact(section.id)}
-                        aria-pressed={isCompact}
-                      >
-                        {isCompact ? "Restore card" : "Minimize card"}
-                      </button>
-                    </div>
                   </div>
 
                   {isCompact ? (
-                    <p className="mt-4 text-sm text-base-content/60">
-                      Card minimized. Restore it to reveal the summary, focus tags, and notes.
+                    <p className="mt-4 text-sm text-base-content/70">
+                      {section.summary}
                     </p>
                   ) : (
                     <div className="mt-6 grid gap-5 border-t border-base-300 pt-6 md:grid-cols-2">
