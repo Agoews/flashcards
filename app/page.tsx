@@ -8,7 +8,7 @@ import { useLocalStorageState } from "@/src/hooks/useLocalStorageState";
 import { useEffect, useMemo, useRef, useState } from "react"; // ✅ add useRef
 
 const GROUP_FILTERS: { value: GroupFilter; label: string }[] = [
-  { value: "ALL", label: "All groups (1A-8A)" },
+  { value: "ALL", label: "All groups (1A-8A, TM, ACT)" },
   { value: "1A", label: "1A - Alkali metals" },
   { value: "2A", label: "2A - Alkaline earths" },
   { value: "3A", label: "3A - Boron family" },
@@ -17,6 +17,8 @@ const GROUP_FILTERS: { value: GroupFilter; label: string }[] = [
   { value: "6A", label: "6A - Chalcogens" },
   { value: "7A", label: "7A - Halogens" },
   { value: "8A", label: "8A - Noble gases" },
+  { value: "TM", label: "Transition metals" },
+  { value: "ACT", label: "Actinides" },
 ];
 
 const DEFAULT_SETTINGS = {
